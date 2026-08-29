@@ -1,0 +1,8 @@
+target/
+data/
+.env
+application-secret.properties
+.idea/
+*.iml
+*.log
+.DS_Store
