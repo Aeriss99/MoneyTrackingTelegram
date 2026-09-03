@@ -34,7 +34,8 @@ public class GeminiAiService {
             return new AiResponse("chat", "Maaf, fitur AI sedang tidak tersedia karena API Key belum dikonfigurasi.", null, null, null);
         }
 
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
+        // URL standar untuk Generative Language API
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
         String prompt = "Kamu adalah asisten pencatat keuangan (FinTrack Bot). Tugasmu adalah mengekstrak niat pengguna dari teks bahasa Indonesia yang diberikan."
                 + " JIKA teks tersebut adalah instruksi untuk mencatat pengeluaran atau pemasukan (contoh: 'makan 25rb', 'gaji masuk 5jt'), "
@@ -47,21 +48,23 @@ public class GeminiAiService {
                 + "Teks pengguna: \"" + userMessage + "\"";
 
         try {
-            // Build the JSON payload for Gemini API
             String jsonPayload = objectMapper.writeValueAsString(
                     new GeminiRequest(new Content[]{new Content(new Part[]{new Part(prompt)})})
             );
 
             RequestBody body = RequestBody.create(jsonPayload, MediaType.parse("application/json"));
+            
             Request request = new Request.Builder()
                     .url(url)
                     .post(body)
+                    .addHeader("x-goog-api-key", apiKey)
                     .build();
 
             try (Response response = client.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
-                    log.error("Gemini API call failed: " + response.body().string());
-                    return new AiResponse("chat", "Maaf, AI sedang mengalami gangguan saat memproses permintaanmu.", null, null, null);
+                    String errorBody = response.body() != null ? response.body().string() : "No error body";
+                    log.error("Gemini API call failed with status code {}: {}", response.code(), errorBody);
+                    return new AiResponse("chat", "Maaf, AI sedang mengalami gangguan saat memproses permintaanmu. (" + response.code() + ")", null, null, null);
                 }
 
                 String responseBody = response.body().string();
