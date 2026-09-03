@@ -36,7 +36,7 @@ public class GeminiAiService {
 
         // Native URL for Generative Language API. 
         // According to the new format (AQ... keys), they work perfectly if passed as a query param or 'x-goog-api-key' header.
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=" + apiKey;
 
         String prompt = "Kamu adalah asisten pencatat keuangan (FinTrack Bot). Tugasmu adalah mengekstrak niat pengguna dari teks bahasa Indonesia yang diberikan."
                 + " JIKA teks tersebut adalah instruksi untuk mencatat pengeluaran atau pemasukan (contoh: 'makan 25rb', 'gaji masuk 5jt'), "
