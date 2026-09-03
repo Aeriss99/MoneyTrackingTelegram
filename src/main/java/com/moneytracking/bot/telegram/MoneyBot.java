@@ -5,7 +5,7 @@ import com.moneytracking.bot.entity.User;
 import com.moneytracking.bot.entity.Transaction;
 import com.moneytracking.bot.service.TransactionService;
 import com.moneytracking.bot.service.UserService;
-import com.moneytracking.bot.service.GeminiAiService;
+import com.moneytracking.bot.service.GroqAiService;
 import com.moneytracking.bot.state.BotState;
 import com.moneytracking.bot.state.UserSession;
 import org.slf4j.Logger;
@@ -44,7 +44,7 @@ public class MoneyBot extends TelegramLongPollingBot {
     private final UserService userService;
     private final TransactionService transactionService;
     private final com.moneytracking.bot.service.ExportService exportService;
-    private final GeminiAiService geminiAiService;
+    private final GroqAiService groqAiService;
 
     // Simpan state per user
     private final Map<Long, UserSession> userSessions = new HashMap<>();
@@ -54,13 +54,13 @@ public class MoneyBot extends TelegramLongPollingBot {
                     UserService userService,
                     TransactionService transactionService,
                     com.moneytracking.bot.service.ExportService exportService,
-                    GeminiAiService geminiAiService) {
+                    GroqAiService groqAiService) {
         super(botToken);
         this.botUsername = botUsername;
         this.userService = userService;
         this.transactionService = transactionService;
         this.exportService = exportService;
-        this.geminiAiService = geminiAiService;
+        this.groqAiService = groqAiService;
     }
 
     @Override
@@ -144,7 +144,7 @@ public class MoneyBot extends TelegramLongPollingBot {
     private void handleAiMessage(long chatId, User user, String text) {
         sendMessage(chatId, "⏳ AI sedang menganalisis pesanmu...");
         
-        GeminiAiService.AiResponse aiResponse = geminiAiService.analyzeText(text);
+        GroqAiService.AiResponse aiResponse = groqAiService.analyzeText(text);
         
         if ("record".equals(aiResponse.getIntent())) {
             try {
