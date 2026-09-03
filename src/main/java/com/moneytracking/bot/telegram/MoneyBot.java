@@ -7,11 +7,15 @@ import com.moneytracking.bot.service.TransactionService;
 import com.moneytracking.bot.service.UserService;
 import com.moneytracking.bot.state.BotState;
 import com.moneytracking.bot.state.UserSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -23,6 +27,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,9 +37,12 @@ import java.util.Optional;
 @Component
 public class MoneyBot extends TelegramLongPollingBot {
 
+    private static final Logger log = LoggerFactory.getLogger(MoneyBot.class);
+
     private final String botUsername;
     private final UserService userService;
     private final TransactionService transactionService;
+    private final com.moneytracking.bot.service.ExportService exportService;
 
     // Simpan state per user
     private final Map<Long, UserSession> userSessions = new HashMap<>();
@@ -42,11 +50,13 @@ public class MoneyBot extends TelegramLongPollingBot {
     public MoneyBot(@Value("${telegram.bot.token}") String botToken,
                     @Value("${telegram.bot.username}") String botUsername,
                     UserService userService,
-                    TransactionService transactionService) {
+                    TransactionService transactionService,
+                    com.moneytracking.bot.service.ExportService exportService) {
         super(botToken);
         this.botUsername = botUsername;
         this.userService = userService;
         this.transactionService = transactionService;
+        this.exportService = exportService;
     }
 
     @Override
@@ -71,6 +81,8 @@ public class MoneyBot extends TelegramLongPollingBot {
         String text = update.getMessage().getText();
         long chatId = update.getMessage().getChatId();
         String username = update.getMessage().getFrom().getUserName();
+        
+        log.info("📨 Menerima PESAN dari @{}: \"{}\"", username, text);
 
         User user = userService.getOrCreateUser(chatId, username);
         UserSession session = getSession(chatId);
@@ -109,6 +121,9 @@ public class MoneyBot extends TelegramLongPollingBot {
                     break;
                 case "🗑 Hapus Transaksi":
                     sendDeleteMenu(chatId, user, 0);
+                    break;
+                case "📄 Export PDF":
+                    handleExportPdf(chatId, user);
                     break;
                 case "⚙️ Pengaturan":
                     sendMessage(chatId, "Fitur pengaturan sedang dalam pengembangan.");
@@ -172,6 +187,9 @@ public class MoneyBot extends TelegramLongPollingBot {
         String data = callbackQuery.getData();
         long chatId = callbackQuery.getMessage().getChatId();
         int messageId = callbackQuery.getMessage().getMessageId();
+        String username = callbackQuery.getFrom().getUserName();
+        
+        log.info("🔘 Menerima KLIK TOMBOL dari @{}: \"{}\"", username, data);
         
         User user = userService.getOrCreateUser(chatId, callbackQuery.getFrom().getUserName());
         UserSession session = getSession(chatId);
@@ -263,6 +281,31 @@ public class MoneyBot extends TelegramLongPollingBot {
 
     // --- UI METHODS ---
 
+    private void handleExportPdf(long chatId, User user) {
+        sendMessage(chatId, "⏳ Sedang membuat laporan PDF Anda, mohon tunggu sebentar...");
+        
+        File pdfFile = exportService.generateTransactionPdf(user);
+        
+        if (pdfFile != null && pdfFile.exists()) {
+            SendDocument sendDocument = new SendDocument();
+            sendDocument.setChatId(String.valueOf(chatId));
+            sendDocument.setDocument(new InputFile(pdfFile));
+            sendDocument.setCaption("📄 Berikut adalah laporan riwayat keuangan Anda.");
+            
+            try {
+                execute(sendDocument);
+            } catch (TelegramApiException e) {
+                log.error("Gagal mengirim PDF", e);
+                sendMessage(chatId, "❌ Gagal mengirim file PDF.");
+            } finally {
+                // Hapus file setelah dikirim agar tidak memenuhi disk server
+                pdfFile.delete();
+            }
+        } else {
+            sendMessage(chatId, "❌ Terjadi kesalahan saat membuat laporan PDF.");
+        }
+    }
+
     private void sendMainMenu(long chatId, String text) {
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
@@ -286,6 +329,7 @@ public class MoneyBot extends TelegramLongPollingBot {
         
         KeyboardRow row4 = new KeyboardRow();
         row4.add("⚙️ Pengaturan");
+        row4.add("📄 Export PDF");
         
         keyboard.add(row1);
         keyboard.add(row2);
