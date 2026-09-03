@@ -1,61 +1,59 @@
-# Money Tracking Telegram Bot
+# 🤖 FinTrack Bot
 
-Sebuah aplikasi pencatat keuangan (Money Tracker) sederhana yang sepenuhnya diakses melalui chat Telegram. Dibangun menggunakan Java 17 dan Spring Boot.
+Personal finance tracking assistant built directly into Telegram. Fast, simple, and always accessible.
 
-## 🚀 Fitur
+## 🚀 Features
 
-- **Catat Pengeluaran/Pemasukan Cepat**: Cukup ketik `makan 25000` atau `gaji 5000000`.
-- **Cek Saldo (`/saldo`)**: Menampilkan total pemasukan, pengeluaran, dan sisa saldo.
-- **Riwayat (`/riwayat`)**: Menampilkan 10 riwayat transaksi terakhir.
-- **Laporan Bulanan (`/laporan`)**: Menampilkan ringkasan keuangan untuk bulan ini.
-- **Hapus Transaksi (`/hapus [ID]`)**: Menghapus transaksi yang salah ketik.
-- **Isolasi Data User**: Data Anda aman dan tidak akan bercampur dengan data user Telegram lainnya.
+- **Quick Entry**: Intuitive menu to record income and expenses on the go.
+- **Categorization**: Built-in categories (Food, Transport, Salary, etc.) to understand your spending habits.
+- **Balance & Reports**: Instantly check your balance or get monthly summaries (`/saldo`, `/laporan`).
+- **Transaction History**: View and paginate through your past transactions.
+- **PDF Export**: Generate professional PDF reports of your transaction history directly in chat.
+- **Data Privacy**: Multi-user architecture ensures your financial data is strictly isolated.
+- **Correction**: Easily delete mistaken entries.
 
-## 🛠️ Tech Stack
+## 🛠️ Technology Stack
 
-- **Language:** Java 17
-- **Framework:** Spring Boot 3.2.x
-- **Database:** H2 Database (Local Dev) & PostgreSQL (Production)
-- **Bot API:** Telegram Bot API (`telegrambots-spring-boot-starter`)
-- **Build Tool:** Maven
+- **Core:** Java 17, Spring Boot 3
+- **Data Persistence:** Spring Data JPA, Hibernate
+- **Database:** PostgreSQL (Production) / H2 (Local Development)
+- **Document Generation:** iTextPDF
+- **Containerization:** Docker
+- **Integration:** Telegram Bot Java Library
 
-## 🏗️ Arsitektur Sederhana
+## ⚙️ Local Development Setup
 
-```
-USER (Telegram) ↔ Telegram Bot API ↔ Spring Boot (Business Logic) ↔ Database (H2/PostgreSQL)
-```
-
-## ⚙️ Cara Menjalankan di Local (Development)
-
-1. Pastikan Anda sudah menginstall **Java 17**.
-2. Buat bot baru di Telegram melalui **BotFather** dan dapatkan **Bot Token** serta **Username Bot**.
-3. Clone repository ini.
-4. Export environment variables untuk token bot (atau edit file `src/main/resources/application.properties` sementara, tapi *jangan di-commit*):
-   
+1. Requirements: Java 17 installed on your machine.
+2. Obtain a Bot Token and Username from **@BotFather** on Telegram.
+3. Clone the repository and copy the example environment file:
    ```bash
-   export TELEGRAM_BOT_TOKEN="token_dari_botfather"
-   export TELEGRAM_BOT_USERNAME="username_bot_anda"
+   cp .env.example .env
    ```
-5. Jalankan aplikasi menggunakan Maven:
-   
+4. Fill in the `.env` file with your Bot credentials and set the profile to local:
+   ```env
+   TELEGRAM_BOT_TOKEN=your_token_here
+   TELEGRAM_BOT_USERNAME=your_bot_username
+   SPRING_PROFILES_ACTIVE=local
+   ```
+5. Run the application:
    ```bash
    ./mvnw spring-boot:run
    ```
-6. Aplikasi akan berjalan dan menggunakan database H2 (file-based) yang akan tersimpan di dalam folder `./data/money_tracking`. Buka Telegram Anda dan mulai chat dengan Bot tersebut!
+   *(The local profile automatically uses an embedded H2 database located in the `./data/` folder).*
 
-## 🚀 Panduan Deployment (Railway - Production)
+## 🚀 Production Deployment
 
-Untuk environment Production, sangat disarankan menggunakan **PostgreSQL** yang disediakan oleh Railway.
+This application is containerized and optimized for Platform-as-a-Service (PaaS) providers that support Docker deployments (e.g., Back4App Containers, Koyeb, Railway).
 
-1. Buat akun di [Railway.app](https://railway.app/).
-2. Buat project baru dan tambahkan **PostgreSQL** database.
-3. Hubungkan repository GitHub ini ke Railway Project Anda.
-4. Tambahkan Environment Variables di Railway:
-   - `TELEGRAM_BOT_TOKEN` : (Token dari BotFather)
-   - `TELEGRAM_BOT_USERNAME` : (Username bot tanpa @)
-   - `SPRING_DATASOURCE_URL` : (Gunakan Database URL yang diberikan Railway PostgreSQL, pastikan prefix-nya adalah `jdbc:postgresql://...`)
-   - `SPRING_DATASOURCE_DRIVER_CLASS_NAME` : `org.postgresql.Driver`
-5. Deploy ulang (Re-deploy). Bot Anda kini live di server Railway!
+**Deployment Steps (Back4App Example):**
+1. Connect this repository to your Back4App Container service.
+2. Set the following Environment Variables in the provider's dashboard:
+   - `SPRING_PROFILES_ACTIVE=prod`
+   - `TELEGRAM_BOT_TOKEN=your_token`
+   - `TELEGRAM_BOT_USERNAME=your_bot_name`
+   - `DATABASE_USERNAME=your_db_user`
+   - `DATABASE_PASSWORD=your_db_password`
+3. The platform will read the provided `Dockerfile` and handle the build and deployment automatically.
 
 ---
-*Project ini dibuat sebagai project pembelajaran Java Backend menggunakan Spring Boot dan Telegram API.*
+*Built with simplicity and speed in mind.*
