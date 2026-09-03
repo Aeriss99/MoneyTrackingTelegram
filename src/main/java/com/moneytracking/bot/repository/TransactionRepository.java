@@ -36,4 +36,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @Param("user") User user, 
             @Param("startDate") LocalDateTime startDate, 
             @Param("endDate") LocalDateTime endDate);
+
+    // Untuk export PDF seluruh data
+    @EntityGraph(attributePaths = {"category"})
+    List<Transaction> findByUserOrderByTransactionDateDesc(User user);
 }
