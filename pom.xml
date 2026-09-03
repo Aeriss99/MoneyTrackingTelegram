@@ -37,6 +37,11 @@
 			<artifactId>telegrambots-spring-boot-starter</artifactId>
 			<version>6.8.0</version>
 		</dependency>
+		<!-- Add Spring Boot Web to force Tomcat to start and open Port 8080 -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
 		<!-- iText for PDF generation -->
 		<dependency>
 			<groupId>com.itextpdf</groupId>
