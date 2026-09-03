@@ -34,8 +34,9 @@ public class GeminiAiService {
             return new AiResponse("chat", "Maaf, fitur AI sedang tidak tersedia karena API Key belum dikonfigurasi.", null, null, null);
         }
 
-        // URL standar untuk Generative Language API
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+        // Native URL for Generative Language API. 
+        // According to the new format (AQ... keys), they work perfectly if passed as a query param or 'x-goog-api-key' header.
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
 
         String prompt = "Kamu adalah asisten pencatat keuangan (FinTrack Bot). Tugasmu adalah mengekstrak niat pengguna dari teks bahasa Indonesia yang diberikan."
                 + " JIKA teks tersebut adalah instruksi untuk mencatat pengeluaran atau pemasukan (contoh: 'makan 25rb', 'gaji masuk 5jt'), "
@@ -48,16 +49,17 @@ public class GeminiAiService {
                 + "Teks pengguna: \"" + userMessage + "\"";
 
         try {
+            // Build the JSON payload for Gemini API
             String jsonPayload = objectMapper.writeValueAsString(
                     new GeminiRequest(new Content[]{new Content(new Part[]{new Part(prompt)})})
             );
 
             RequestBody body = RequestBody.create(jsonPayload, MediaType.parse("application/json"));
             
+            // Simple pure REST call. No dual-authentication headers (Bearer + x-goog) to avoid "Multiple authentication credentials" error.
             Request request = new Request.Builder()
                     .url(url)
                     .post(body)
-                    .addHeader("x-goog-api-key", apiKey)
                     .build();
 
             try (Response response = client.newCall(request).execute()) {
@@ -100,14 +102,13 @@ public class GeminiAiService {
     // --- Inner classes for request/response mapping ---
 
     public static class AiResponse {
-        private String intent; // "record" or "chat"
-        private String message; // For chat intent
-        private String type; // "INCOME" or "EXPENSE"
+        private String intent; 
+        private String message; 
+        private String type; 
         private Double amount;
         private String category;
         private String description;
 
-        // Default constructor for Jackson
         public AiResponse() {}
 
         public AiResponse(String intent, String message, String type, Double amount, String category) {
