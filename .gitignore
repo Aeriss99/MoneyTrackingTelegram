@@ -5,4 +5,4 @@ application-secret.properties
 .idea/
 *.iml
 *.log
-.DS_Store
+.DS_Storerun-local.sh
