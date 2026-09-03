@@ -5,6 +5,7 @@ import com.moneytracking.bot.entity.User;
 import com.moneytracking.bot.entity.Transaction;
 import com.moneytracking.bot.service.TransactionService;
 import com.moneytracking.bot.service.UserService;
+import com.moneytracking.bot.service.GeminiAiService;
 import com.moneytracking.bot.state.BotState;
 import com.moneytracking.bot.state.UserSession;
 import org.slf4j.Logger;
@@ -43,6 +44,7 @@ public class MoneyBot extends TelegramLongPollingBot {
     private final UserService userService;
     private final TransactionService transactionService;
     private final com.moneytracking.bot.service.ExportService exportService;
+    private final GeminiAiService geminiAiService;
 
     // Simpan state per user
     private final Map<Long, UserSession> userSessions = new HashMap<>();
@@ -51,12 +53,14 @@ public class MoneyBot extends TelegramLongPollingBot {
                     @Value("${telegram.bot.username}") String botUsername,
                     UserService userService,
                     TransactionService transactionService,
-                    com.moneytracking.bot.service.ExportService exportService) {
+                    com.moneytracking.bot.service.ExportService exportService,
+                    GeminiAiService geminiAiService) {
         super(botToken);
         this.botUsername = botUsername;
         this.userService = userService;
         this.transactionService = transactionService;
         this.exportService = exportService;
+        this.geminiAiService = geminiAiService;
     }
 
     @Override
@@ -129,11 +133,40 @@ public class MoneyBot extends TelegramLongPollingBot {
                     sendMessage(chatId, "Fitur pengaturan sedang dalam pengembangan.");
                     break;
                 default:
-                    sendMessage(chatId, "Tolong pilih opsi dari menu di bawah 👇");
+                    handleAiMessage(chatId, user, text);
             }
         } else {
             // Handle State Logic (Sedang input data)
             handleStateInput(chatId, user, session, text);
+        }
+    }
+
+    private void handleAiMessage(long chatId, User user, String text) {
+        sendMessage(chatId, "⏳ AI sedang menganalisis pesanmu...");
+        
+        GeminiAiService.AiResponse aiResponse = geminiAiService.analyzeText(text);
+        
+        if ("record".equals(aiResponse.getIntent())) {
+            try {
+                TransactionType type = TransactionType.valueOf(aiResponse.getType().toUpperCase());
+                BigDecimal amount = BigDecimal.valueOf(aiResponse.getAmount());
+                String result = transactionService.saveTransaction(user, type, amount, aiResponse.getCategory(), aiResponse.getDescription());
+                
+                String reply = "✅ Berhasil dicatat otomatis oleh AI!\n\n" +
+                               "Tipe: " + (type == TransactionType.INCOME ? "Pemasukan 🟢" : "Pengeluaran 🔴") + "\n" +
+                               "Nominal: " + TransactionService.formatRupiah(amount) + "\n" +
+                               "Kategori: " + aiResponse.getCategory() + "\n" +
+                               "Deskripsi: " + (aiResponse.getDescription() != null ? aiResponse.getDescription() : "-") + "\n\n" +
+                               "Saldo saat ini: " + transactionService.getSaldo(user);
+                               
+                sendMessage(chatId, reply);
+            } catch (Exception e) {
+                log.error("AI returned invalid data format", e);
+                sendMessage(chatId, "❌ AI gagal memahami format pencatatan. Tolong gunakan kalimat yang lebih jelas (misal: 'Makan siang 25000').");
+            }
+        } else {
+            // It's just a regular chat or question
+            sendMessage(chatId, aiResponse.getMessage());
         }
     }
 
