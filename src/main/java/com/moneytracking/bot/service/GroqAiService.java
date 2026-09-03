@@ -47,10 +47,10 @@ public class GroqAiService {
         try {
             // Build OpenAI-compatible JSON payload for Groq
             String jsonPayload = objectMapper.writeValueAsString(
-                    new GroqRequest("llama3-8b-8192", new Message[]{
+                    new GroqRequest("llama-3.1-8b-instant", new Message[]{
                             new Message("system", systemPrompt),
                             new Message("user", userMessage)
-                    })
+                    }, 0.5)
             );
 
             RequestBody body = RequestBody.create(jsonPayload, MediaType.parse("application/json"));
@@ -132,6 +132,6 @@ public class GroqAiService {
         public void setDescription(String description) { this.description = description; }
     }
 
-    private record GroqRequest(String model, Message[] messages) {}
+    private record GroqRequest(String model, Message[] messages, double temperature) {}
     private record Message(String role, String content) {}
 }
