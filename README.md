@@ -1,59 +1,64 @@
-# 🤖 FinTrack Bot
+# 🤖 Lingz Finance Bot
 
-Personal finance tracking assistant built directly into Telegram. Fast, simple, and always accessible.
+Asisten pelacak keuangan pribadi yang dibangun langsung di dalam Telegram. Cepat, simpel, pintar dengan AI, dan selalu bisa diakses kapan saja.
 
-## 🚀 Features
+## 🚀 Fitur Utama
 
-- **Quick Entry**: Intuitive menu to record income and expenses on the go.
-- **Categorization**: Built-in categories (Food, Transport, Salary, etc.) to understand your spending habits.
-- **Balance & Reports**: Instantly check your balance or get monthly summaries (`/saldo`, `/laporan`).
-- **Transaction History**: View and paginate through your past transactions.
-- **PDF Export**: Generate professional PDF reports of your transaction history directly in chat.
-- **Data Privacy**: Multi-user architecture ensures your financial data is strictly isolated.
-- **Correction**: Easily delete mistaken entries.
+- **Fast Local Parser**: Deteksi instan untuk pencatatan transaksi sehari-hari (contoh: "makan 25k", "gaji 5 juta") tanpa jeda.
+- **Smart AI Assistant**: Terintegrasi dengan Google Gemini AI untuk menganalisis pertanyaan keuangan yang lebih kompleks dengan gaya bahasa yang santai dan humoris.
+- **Kategorisasi Cerdas**: Kategori otomatis (Makanan, Transport, Belanja, dll.) untuk memahami kebiasaan pengeluaran Anda.
+- **Cek Saldo & Laporan**: Cek saldo Anda seketika atau dapatkan ringkasan bulanan.
+- **Riwayat Transaksi**: Lihat dan navigasi riwayat transaksi Anda dengan mudah.
+- **Export PDF Profesional**: Hasilkan laporan PDF keuangan yang elegan layaknya mutasi bank dengan kolom saldo berjalan langsung di dalam chat.
+- **Penghapusan Instan**: Hapus transaksi yang salah ketik hanya dengan 1 klik.
+- **Privasi Data**: Arsitektur multi-user memastikan data keuangan Anda terisolasi dengan aman.
 
-## 🛠️ Technology Stack
+## 🛠️ Stack Teknologi
 
 - **Core:** Java 17, Spring Boot 3
 - **Data Persistence:** Spring Data JPA, Hibernate
 - **Database:** PostgreSQL (Production) / H2 (Local Development)
+- **AI Integration:** Google Gemini API (`gemini-3.6-flash`)
 - **Document Generation:** iTextPDF
-- **Containerization:** Docker
 - **Integration:** Telegram Bot Java Library
 
-## ⚙️ Local Development Setup
+## ⚙️ Setup Development Lokal
 
-1. Requirements: Java 17 installed on your machine.
-2. Obtain a Bot Token and Username from **@BotFather** on Telegram.
-3. Clone the repository and copy the example environment file:
+1. Kebutuhan Sistem: Java 17 terinstall.
+2. Dapatkan Bot Token dan Username dari **@BotFather** di Telegram.
+3. Dapatkan API Key Gemini dari **Google AI Studio**.
+4. Clone repositori dan copy file environment contoh:
    ```bash
    cp .env.example .env
    ```
-4. Fill in the `.env` file with your Bot credentials and set the profile to local:
+5. Isi file `.env` dengan kredensial bot dan API Anda:
    ```env
-   TELEGRAM_BOT_TOKEN=your_token_here
-   TELEGRAM_BOT_USERNAME=your_bot_username
+   TELEGRAM_BOT_TOKEN=token_anda
+   TELEGRAM_BOT_USERNAME=username_bot_anda
+   GEMINI_API_KEY=api_key_gemini_anda
    SPRING_PROFILES_ACTIVE=local
    ```
-5. Run the application:
+6. Jalankan aplikasi:
    ```bash
    ./mvnw spring-boot:run
    ```
-   *(The local profile automatically uses an embedded H2 database located in the `./data/` folder).*
+   *(Profil lokal secara otomatis menggunakan database H2 tertanam yang terletak di folder `./data/`).*
 
-## 🚀 Production Deployment
+## 🚀 Deployment Produksi
 
-This application is containerized and optimized for Platform-as-a-Service (PaaS) providers that support Docker deployments (e.g., Back4App Containers, Koyeb, Railway).
+Aplikasi ini telah dioptimalkan untuk penyedia Platform-as-a-Service (PaaS) seperti Back4App Containers, Koyeb, atau Railway.
 
-**Deployment Steps (Back4App Example):**
-1. Connect this repository to your Back4App Container service.
-2. Set the following Environment Variables in the provider's dashboard:
+**Langkah Deployment (Contoh Back4App):**
+1. Hubungkan repositori ini ke layanan Back4App Container Anda.
+2. Atur Environment Variables berikut di dashboard penyedia:
    - `SPRING_PROFILES_ACTIVE=prod`
-   - `TELEGRAM_BOT_TOKEN=your_token`
-   - `TELEGRAM_BOT_USERNAME=your_bot_name`
-   - `DATABASE_USERNAME=your_db_user`
-   - `DATABASE_PASSWORD=your_db_password`
-3. The platform will read the provided `Dockerfile` and handle the build and deployment automatically.
+   - `TELEGRAM_BOT_TOKEN=token_anda`
+   - `TELEGRAM_BOT_USERNAME=username_bot_anda`
+   - `GEMINI_API_KEY=api_key_gemini_anda`
+   - `DATABASE_USERNAME=user_db_anda`
+   - `DATABASE_PASSWORD=password_db_anda`
+3. Tambahkan layanan ping (seperti UptimeRobot) ke `/api/health` jika menggunakan PaaS versi gratis agar bot tidak tertidur (sleep).
+4. Platform akan menangani build dan deployment secara otomatis.
 
 ---
-*Built with simplicity and speed in mind.*
+*Dibangun untuk kecepatan, kepraktisan, dan teman yang asik dalam mengelola keuangan Anda.*

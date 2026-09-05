@@ -5,7 +5,8 @@ import com.moneytracking.bot.entity.User;
 import com.moneytracking.bot.entity.Transaction;
 import com.moneytracking.bot.service.TransactionService;
 import com.moneytracking.bot.service.UserService;
-import com.moneytracking.bot.service.GroqAiService;
+import com.moneytracking.bot.service.GeminiAiService;
+import com.moneytracking.bot.service.LocalParserService;
 import com.moneytracking.bot.state.BotState;
 import com.moneytracking.bot.state.UserSession;
 import org.slf4j.Logger;
@@ -44,7 +45,8 @@ public class MoneyBot extends TelegramLongPollingBot {
     private final UserService userService;
     private final TransactionService transactionService;
     private final com.moneytracking.bot.service.ExportService exportService;
-    private final GroqAiService groqAiService;
+    private final GeminiAiService geminiAiService;
+    private final LocalParserService localParserService;
 
     // Simpan state per user
     private final Map<Long, UserSession> userSessions = new HashMap<>();
@@ -54,13 +56,15 @@ public class MoneyBot extends TelegramLongPollingBot {
                     UserService userService,
                     TransactionService transactionService,
                     com.moneytracking.bot.service.ExportService exportService,
-                    GroqAiService groqAiService) {
+                    GeminiAiService geminiAiService,
+                    LocalParserService localParserService) {
         super(botToken);
         this.botUsername = botUsername;
         this.userService = userService;
         this.transactionService = transactionService;
         this.exportService = exportService;
-        this.groqAiService = groqAiService;
+        this.geminiAiService = geminiAiService;
+        this.localParserService = localParserService;
     }
 
     @Override
@@ -142,9 +146,40 @@ public class MoneyBot extends TelegramLongPollingBot {
     }
 
     private void handleAiMessage(long chatId, User user, String text) {
-        sendMessage(chatId, "⏳ AI sedang menganalisis pesanmu...");
-        
-        GroqAiService.AiResponse aiResponse = groqAiService.analyzeText(text);
+        // ==========================================
+        // 1. LOCAL FAST PARSER (No AI API call needed)
+        // ==========================================
+        LocalParserService.ParsedTransaction parsed = localParserService.parseSimpleTransaction(text);
+        if (parsed != null) {
+            try {
+                BigDecimal amount = BigDecimal.valueOf(parsed.amount);
+                transactionService.saveTransaction(user, parsed.type, amount, parsed.category, parsed.description);
+                
+                String reply = localParserService.generateFunnyResponse(parsed.type, parsed.amount, parsed.description);
+                sendMessage(chatId, reply);
+                return; // Berhenti di sini, tidak perlu panggil Gemini
+            } catch (Exception e) {
+                log.error("Gagal save dari local parser", e);
+                // Jika gagal save, lanjutkan ke AI fallback
+            }
+        }
+
+        // ==========================================
+        // 2. GEMINI AI API (Fallback for complex inputs/chat)
+        // ==========================================
+        String[] waitingMessages = {
+            "🧠 Bentar, otakku lagi ngitung duit kamu 😂",
+            "🔍 Lagi nyari siapa yang bikin saldo kamu kabur... 😂",
+            "🧮 Sebentar, angka-angkanya lagi dirapatkan 😭",
+            "💸 Lagi ngecek ke mana duit kamu pergi 😂",
+            "🤔 Bentar, dompetmu lagi aku interogasi 😭",
+            "⏳ Sabar ya, lagi bongkar-bongkar catatan kasbon kamu 😂"
+        };
+        String randomWaitMsg = waitingMessages[new java.util.Random().nextInt(waitingMessages.length)];
+        sendMessage(chatId, randomWaitMsg);
+
+        String currentSaldo = transactionService.getSaldo(user);
+        GeminiAiService.AiResponse aiResponse = geminiAiService.analyzeText(text, currentSaldo);
         
         if ("record".equals(aiResponse.getIntent())) {
             try {
@@ -164,9 +199,11 @@ public class MoneyBot extends TelegramLongPollingBot {
                 log.error("AI returned invalid data format", e);
                 sendMessage(chatId, "❌ AI gagal memahami format pencatatan. Tolong gunakan kalimat yang lebih jelas (misal: 'Makan siang 25000').");
             }
+        } else if ("out_of_context".equals(aiResponse.getIntent())) {
+            sendMessage(chatId, aiResponse.getMessage());
         } else {
             // It's just a regular chat or question
-            sendMessage(chatId, aiResponse.getMessage());
+            sendMessage(chatId, aiResponse.getMessage() != null ? aiResponse.getMessage() : "Maaf, AI tidak memberikan respons yang dapat dimengerti.");
         }
     }
 
@@ -249,67 +286,17 @@ public class MoneyBot extends TelegramLongPollingBot {
         // Handle Delete Selection
         else if (data.startsWith("del_select_")) {
             Long trxId = Long.parseLong(data.split("_")[2]);
-            Optional<Transaction> trxOpt = transactionService.getTransaction(user, trxId);
-            
-            if (trxOpt.isPresent()) {
-                Transaction trx = trxOpt.get();
-                session.setState(BotState.WAITING_DELETE_CONFIRMATION);
-                session.setTempDeleteId(trxId);
-                
-                String text = String.format("Apakah kamu yakin ingin menghapus transaksi ini?\n\n%s\n%s", 
-                        trx.getCategory().getName(), TransactionService.formatRupiah(trx.getAmount()));
-                        
-                InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-                List<List<InlineKeyboardButton>> rows = new ArrayList<>();
-                
-                List<InlineKeyboardButton> row = new ArrayList<>();
-                InlineKeyboardButton yesBtn = new InlineKeyboardButton();
-                yesBtn.setText("✅ Ya, Hapus");
-                yesBtn.setCallbackData("del_confirm_yes");
-                row.add(yesBtn);
-                
-                InlineKeyboardButton noBtn = new InlineKeyboardButton();
-                noBtn.setText("❌ Batal");
-                noBtn.setCallbackData("del_confirm_no");
-                row.add(noBtn);
-                
-                rows.add(row);
-                markup.setKeyboard(rows);
-                
-                EditMessageText edit = new EditMessageText();
-                edit.setChatId(String.valueOf(chatId));
-                edit.setMessageId(messageId);
-                edit.setText(text);
-                edit.setReplyMarkup(markup);
-                
-                try {
-                    execute(edit);
-                } catch (TelegramApiException e) { e.printStackTrace(); }
-            } else {
-                sendMainMenu(chatId, "❌ Transaksi tidak ditemukan.");
-            }
-        }
-        
-        // Handle Delete Confirmation
-        else if (data.equals("del_confirm_yes")) {
-            if (session.getState() == BotState.WAITING_DELETE_CONFIRMATION && session.getTempDeleteId() != null) {
-                String result = transactionService.deleteTransaction(user, session.getTempDeleteId());
-                session.clear();
-                
-                EditMessageText edit = new EditMessageText();
-                edit.setChatId(String.valueOf(chatId));
-                edit.setMessageId(messageId);
-                edit.setText(result);
-                try { execute(edit); } catch (TelegramApiException e) { e.printStackTrace(); }
-            }
-        } else if (data.equals("del_confirm_no")) {
+            String result = transactionService.deleteTransaction(user, trxId);
             session.clear();
+            
             EditMessageText edit = new EditMessageText();
             edit.setChatId(String.valueOf(chatId));
             edit.setMessageId(messageId);
-            edit.setText("Batal menghapus transaksi.");
+            edit.setText(result);
             try { execute(edit); } catch (TelegramApiException e) { e.printStackTrace(); }
         }
+        
+
     }
 
     // --- UI METHODS ---

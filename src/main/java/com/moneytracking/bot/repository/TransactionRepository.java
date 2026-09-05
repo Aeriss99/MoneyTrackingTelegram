@@ -40,4 +40,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     // Untuk export PDF seluruh data
     @EntityGraph(attributePaths = {"category"})
     List<Transaction> findByUserOrderByTransactionDateDesc(User user);
+    
+    // Untuk export PDF urutan lama ke baru
+    @EntityGraph(attributePaths = {"category"})
+    List<Transaction> findByUserOrderByTransactionDateAsc(User user);
 }
