@@ -2,6 +2,8 @@ package com.moneytracking.bot.state;
 
 import com.moneytracking.bot.entity.TransactionType;
 import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.Set;
 
 public class UserSession {
     private BotState state;
@@ -13,9 +15,13 @@ public class UserSession {
     
     // Data sementara untuk delete
     private Long tempDeleteId;
+    
+    // Data untuk multi-delete
+    private Set<Long> selectedTransactionsToDelete;
 
     public UserSession() {
         this.state = BotState.IDLE;
+        this.selectedTransactionsToDelete = new HashSet<>();
     }
 
     public BotState getState() { return state; }
@@ -33,11 +39,14 @@ public class UserSession {
     public Long getTempDeleteId() { return tempDeleteId; }
     public void setTempDeleteId(Long tempDeleteId) { this.tempDeleteId = tempDeleteId; }
     
+    public Set<Long> getSelectedTransactionsToDelete() { return selectedTransactionsToDelete; }
+    
     public void clear() {
         this.state = BotState.IDLE;
         this.tempType = null;
         this.tempAmount = null;
         this.tempCategory = null;
         this.tempDeleteId = null;
+        this.selectedTransactionsToDelete.clear();
     }
 }

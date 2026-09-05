@@ -128,7 +128,8 @@ public class MoneyBot extends TelegramLongPollingBot {
                     sendRiwayatMessage(chatId, user, 0);
                     break;
                 case "🗑 Hapus Transaksi":
-                    sendDeleteMenu(chatId, user, 0);
+                    session.getSelectedTransactionsToDelete().clear(); // Reset selections
+                    sendDeleteMenu(chatId, user, session, 0);
                     break;
                 case "📄 Export PDF":
                     handleExportPdf(chatId, user);
@@ -280,22 +281,54 @@ public class MoneyBot extends TelegramLongPollingBot {
         // Handle Delete Pagination
         else if (data.startsWith("del_page_")) {
             int page = Integer.parseInt(data.split("_")[2]);
-            editDeleteMenu(chatId, messageId, user, page);
+            editDeleteMenu(chatId, messageId, user, session, page);
         }
         
         // Handle Delete Selection
         else if (data.startsWith("del_select_")) {
             Long trxId = Long.parseLong(data.split("_")[2]);
-            String result = transactionService.deleteTransaction(user, trxId);
-            session.clear();
+            int currentPage = Integer.parseInt(data.split("_")[3]);
             
+            // Toggle selection
+            if (session.getSelectedTransactionsToDelete().contains(trxId)) {
+                session.getSelectedTransactionsToDelete().remove(trxId);
+            } else {
+                session.getSelectedTransactionsToDelete().add(trxId);
+            }
+            
+            // Refresh menu
+            editDeleteMenu(chatId, messageId, user, session, currentPage);
+        }
+        
+        // Handle Execute Multi Delete
+        else if (data.startsWith("del_exec_")) {
+            if (session.getSelectedTransactionsToDelete().isEmpty()) {
+                EditMessageText edit = new EditMessageText();
+                edit.setChatId(String.valueOf(chatId));
+                edit.setMessageId(messageId);
+                edit.setText("Batal, tidak ada transaksi yang dipilih.");
+                try { execute(edit); } catch (TelegramApiException e) { e.printStackTrace(); }
+            } else {
+                String result = transactionService.deleteMultipleTransactions(user, session.getSelectedTransactionsToDelete());
+                session.clear();
+                
+                EditMessageText edit = new EditMessageText();
+                edit.setChatId(String.valueOf(chatId));
+                edit.setMessageId(messageId);
+                edit.setText(result);
+                try { execute(edit); } catch (TelegramApiException e) { e.printStackTrace(); }
+            }
+        }
+        
+        // Handle Cancel Delete
+        else if (data.equals("del_cancel")) {
+            session.clear();
             EditMessageText edit = new EditMessageText();
             edit.setChatId(String.valueOf(chatId));
             edit.setMessageId(messageId);
-            edit.setText(result);
+            edit.setText("Batal menghapus transaksi.");
             try { execute(edit); } catch (TelegramApiException e) { e.printStackTrace(); }
         }
-        
 
     }
 
@@ -522,7 +555,7 @@ public class MoneyBot extends TelegramLongPollingBot {
         return markup;
     }
 
-    private void sendDeleteMenu(long chatId, User user, int page) {
+    private void sendDeleteMenu(long chatId, User user, UserSession session, int page) {
         Page<Transaction> trxPage = transactionService.getRiwayatPage(user, page);
         
         if (trxPage.isEmpty()) {
@@ -532,7 +565,7 @@ public class MoneyBot extends TelegramLongPollingBot {
 
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
-        message.setText("🗑 Pilih transaksi yang ingin dihapus:");
+        message.setText("🗑 Pilih transaksi yang ingin dihapus (bisa lebih dari 1):");
         
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
@@ -542,31 +575,51 @@ public class MoneyBot extends TelegramLongPollingBot {
             InlineKeyboardButton btn = new InlineKeyboardButton();
             String icon = t.getType() == TransactionType.INCOME ? "🟢" : "🔴";
             String sign = t.getType() == TransactionType.INCOME ? "+" : "-";
-            btn.setText(String.format("%s %s %s%s", icon, t.getCategory().getName(), sign, TransactionService.formatRupiah(t.getAmount())));
-            btn.setCallbackData("del_select_" + t.getId());
+            
+            // Checkmark logic
+            String check = session.getSelectedTransactionsToDelete().contains(t.getId()) ? "✅ " : "⬛ ";
+            
+            btn.setText(String.format("%s%s %s %s%s", check, icon, t.getCategory().getName(), sign, TransactionService.formatRupiah(t.getAmount())));
+            btn.setCallbackData("del_select_" + t.getId() + "_" + page);
             row.add(btn);
             rows.add(row);
         }
         
+        // Navigation Row
         List<InlineKeyboardButton> navRow = new ArrayList<>();
         if (page > 0) {
             InlineKeyboardButton pBtn = new InlineKeyboardButton();
-            pBtn.setText("◀"); pBtn.setCallbackData("del_page_" + (page - 1));
+            pBtn.setText("◀ Prev"); pBtn.setCallbackData("del_page_" + (page - 1));
             navRow.add(pBtn);
         }
         if (page < trxPage.getTotalPages() - 1) {
             InlineKeyboardButton nBtn = new InlineKeyboardButton();
-            nBtn.setText("▶"); nBtn.setCallbackData("del_page_" + (page + 1));
+            nBtn.setText("Next ▶"); nBtn.setCallbackData("del_page_" + (page + 1));
             navRow.add(nBtn);
         }
         if(!navRow.isEmpty()) rows.add(navRow);
         
+        // Action Buttons Row
+        List<InlineKeyboardButton> actionRow = new ArrayList<>();
+        InlineKeyboardButton execBtn = new InlineKeyboardButton();
+        int selectedCount = session.getSelectedTransactionsToDelete().size();
+        execBtn.setText("🗑 Hapus Terpilih (" + selectedCount + ")");
+        execBtn.setCallbackData("del_exec_");
+        actionRow.add(execBtn);
+        
+        InlineKeyboardButton cancelBtn = new InlineKeyboardButton();
+        cancelBtn.setText("❌ Batal");
+        cancelBtn.setCallbackData("del_cancel");
+        actionRow.add(cancelBtn);
+        
+        rows.add(actionRow);
+
         markup.setKeyboard(rows);
         message.setReplyMarkup(markup);
         try { execute(message); } catch (TelegramApiException e) { e.printStackTrace(); }
     }
     
-    private void editDeleteMenu(long chatId, int messageId, User user, int page) {
+    private void editDeleteMenu(long chatId, int messageId, User user, UserSession session, int page) {
         Page<Transaction> trxPage = transactionService.getRiwayatPage(user, page);
         if (trxPage.isEmpty()) return;
         
@@ -578,31 +631,51 @@ public class MoneyBot extends TelegramLongPollingBot {
             InlineKeyboardButton btn = new InlineKeyboardButton();
             String icon = t.getType() == TransactionType.INCOME ? "🟢" : "🔴";
             String sign = t.getType() == TransactionType.INCOME ? "+" : "-";
-            btn.setText(String.format("%s %s %s%s", icon, t.getCategory().getName(), sign, TransactionService.formatRupiah(t.getAmount())));
-            btn.setCallbackData("del_select_" + t.getId());
+            
+            // Checkmark logic
+            String check = session.getSelectedTransactionsToDelete().contains(t.getId()) ? "✅ " : "⬛ ";
+            
+            btn.setText(String.format("%s%s %s %s%s", check, icon, t.getCategory().getName(), sign, TransactionService.formatRupiah(t.getAmount())));
+            btn.setCallbackData("del_select_" + t.getId() + "_" + page);
             row.add(btn);
             rows.add(row);
         }
         
+        // Navigation Row
         List<InlineKeyboardButton> navRow = new ArrayList<>();
         if (page > 0) {
             InlineKeyboardButton pBtn = new InlineKeyboardButton();
-            pBtn.setText("◀"); pBtn.setCallbackData("del_page_" + (page - 1));
+            pBtn.setText("◀ Prev"); pBtn.setCallbackData("del_page_" + (page - 1));
             navRow.add(pBtn);
         }
         if (page < trxPage.getTotalPages() - 1) {
             InlineKeyboardButton nBtn = new InlineKeyboardButton();
-            nBtn.setText("▶"); nBtn.setCallbackData("del_page_" + (page + 1));
+            nBtn.setText("Next ▶"); nBtn.setCallbackData("del_page_" + (page + 1));
             navRow.add(nBtn);
         }
         if(!navRow.isEmpty()) rows.add(navRow);
+        
+        // Action Buttons Row
+        List<InlineKeyboardButton> actionRow = new ArrayList<>();
+        InlineKeyboardButton execBtn = new InlineKeyboardButton();
+        int selectedCount = session.getSelectedTransactionsToDelete().size();
+        execBtn.setText("🗑 Hapus Terpilih (" + selectedCount + ")");
+        execBtn.setCallbackData("del_exec_");
+        actionRow.add(execBtn);
+        
+        InlineKeyboardButton cancelBtn = new InlineKeyboardButton();
+        cancelBtn.setText("❌ Batal");
+        cancelBtn.setCallbackData("del_cancel");
+        actionRow.add(cancelBtn);
+        
+        rows.add(actionRow);
         
         markup.setKeyboard(rows);
         
         EditMessageText edit = new EditMessageText();
         edit.setChatId(String.valueOf(chatId));
         edit.setMessageId(messageId);
-        edit.setText("🗑 Pilih transaksi yang ingin dihapus:");
+        edit.setText("🗑 Pilih transaksi yang ingin dihapus (bisa lebih dari 1):");
         edit.setReplyMarkup(markup);
         try { execute(edit); } catch (TelegramApiException e) { e.printStackTrace(); }
     }

@@ -141,6 +141,19 @@ public class TransactionService {
                 .orElse("❌ Transaksi tidak ditemukan atau Anda tidak memiliki akses.");
     }
     
+    @Transactional
+    public String deleteMultipleTransactions(User user, java.util.Set<Long> ids) {
+        int count = 0;
+        for (Long id : ids) {
+            Optional<Transaction> tOpt = transactionRepository.findByIdAndUser(id, user);
+            if (tOpt.isPresent()) {
+                transactionRepository.delete(tOpt.get());
+                count++;
+            }
+        }
+        return "✅ " + count + " transaksi berhasil dihapus.";
+    }
+    
     public Optional<Transaction> getTransaction(User user, Long id) {
         return transactionRepository.findByIdAndUser(id, user);
     }
