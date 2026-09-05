@@ -27,6 +27,47 @@ public class LocalParserService {
     }
 
     /**
+     * Mengecek apakah pesan berupa pertanyaan sapaan/OOT sederhana
+     */
+    public String checkSimpleOOTOrGreeting(String text) {
+        String lower = text.toLowerCase().trim();
+        
+        // Sapaan
+        if (lower.matches("^(halo|hi|hai|pagi|siang|sore|malam|bot|oy|oi|test|tes).*")) {
+            if (lower.length() < 15) {
+                String[] greetings = {
+                        "Halo bro! Mau nyatet pengeluaran apa hari ini? 👀",
+                        "Oi! Dompet aman kan hari ini? 😂",
+                        "Hai hai! Jangan bilang mau nyatet pengeluaran lagi 😭",
+                        "Halo! Silakan ketik pengeluaran atau pemasukan kamu hari ini 💸"
+                };
+                return greetings[random.nextInt(greetings.length)];
+            }
+        }
+        
+        // OOT sederhana yang langsung ditolak tanpa AI
+        if (lower.matches(".*(siapa presiden|cuaca|anime|resep|bikin puisi|coding|game|film|main|lagu).*")) {
+            String[] oots = {
+                    "😂 Kalau bahas itu aku bisa ngelamun. Aku di sini ngurusin duit kamu, kalau mau bahas yang lain chat owner-ku 👉 @areUlookingFor",
+                    "😅 Itu bukan wilayahku bro. Aku lebih jago ngurus saldo daripada ngurusin kehidupan orang 😂 👉 @areUlookingFor",
+                    "😂 Aku fokus ngurusin duit kamu dulu. Kalau mau bahas yang lain, owner-ku siap ditanya 👉 @areUlookingFor"
+            };
+            return oots[random.nextInt(oots.length)];
+        }
+        
+        return null;
+    }
+
+    /**
+     * Mengecek apakah ini adalah pertanyaan tentang cek saldo sederhana
+     */
+    public boolean isSimpleBalanceCheck(String text) {
+        String lower = text.toLowerCase().trim();
+        // Cek pertanyaan tentang saldo/duit
+        return lower.matches("^(berapa saldo|sisa saldo|saldo|saldoku|uangku|duitku|duit saya|saldo saya|cek saldo).*");
+    }
+
+    /**
      * Mencoba mem-parsing input sederhana seperti "makan 25k" atau "gaji 5 juta".
      * Mengembalikan null jika kalimat terlalu kompleks atau tidak menemukan angka.
      */

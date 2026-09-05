@@ -150,6 +150,22 @@ public class MoneyBot extends TelegramLongPollingBot {
         // ==========================================
         // 1. LOCAL FAST PARSER (No AI API call needed)
         // ==========================================
+        
+        // Cek sapaan atau oot
+        String ootOrGreeting = localParserService.checkSimpleOOTOrGreeting(text);
+        if (ootOrGreeting != null) {
+            sendMessage(chatId, ootOrGreeting);
+            return;
+        }
+
+        // Cek pertanyaan saldo
+        if (localParserService.isSimpleBalanceCheck(text)) {
+            String currentSaldo = transactionService.getSaldo(user);
+            sendMessage(chatId, "💰 Saldo kamu sekarang " + currentSaldo + ".\nMasih aman kan? 😂");
+            return;
+        }
+
+        // Cek transaksi input kilat
         LocalParserService.ParsedTransaction parsed = localParserService.parseSimpleTransaction(text);
         if (parsed != null) {
             try {
@@ -186,19 +202,14 @@ public class MoneyBot extends TelegramLongPollingBot {
             try {
                 TransactionType type = TransactionType.valueOf(aiResponse.getType().toUpperCase());
                 BigDecimal amount = BigDecimal.valueOf(aiResponse.getAmount());
-                String result = transactionService.saveTransaction(user, type, amount, aiResponse.getCategory(), aiResponse.getDescription());
+                transactionService.saveTransaction(user, type, amount, aiResponse.getCategory(), aiResponse.getDescription());
                 
-                String reply = "✅ Berhasil dicatat otomatis oleh AI!\n\n" +
-                               "Tipe: " + (type == TransactionType.INCOME ? "Pemasukan 🟢" : "Pengeluaran 🔴") + "\n" +
-                               "Nominal: " + TransactionService.formatRupiah(amount) + "\n" +
-                               "Kategori: " + aiResponse.getCategory() + "\n" +
-                               "Deskripsi: " + (aiResponse.getDescription() != null ? aiResponse.getDescription() : "-") + "\n\n" +
-                               "Saldo saat ini: " + transactionService.getSaldo(user);
-                               
+                // Gunakan respon jenaka seperti di local parser untuk konsistensi pengalaman
+                String reply = localParserService.generateFunnyResponse(type, aiResponse.getAmount(), aiResponse.getDescription());
                 sendMessage(chatId, reply);
             } catch (Exception e) {
                 log.error("AI returned invalid data format", e);
-                sendMessage(chatId, "❌ AI gagal memahami format pencatatan. Tolong gunakan kalimat yang lebih jelas (misal: 'Makan siang 25000').");
+                sendMessage(chatId, "😅 AI agak bingung sama angkanya. Coba ketik lebih jelas ya, misalnya: 'Makan siang 25k'.");
             }
         } else if ("out_of_context".equals(aiResponse.getIntent())) {
             sendMessage(chatId, aiResponse.getMessage());
