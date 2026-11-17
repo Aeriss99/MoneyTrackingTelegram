@@ -15,10 +15,10 @@ Asisten pelacak keuangan pribadi yang dibangun langsung di dalam Telegram. Cepat
 
 ## 🛠️ Stack Teknologi
 
-- **Core:** Java 17, Spring Boot 3
+- **Core:** Java 17, Spring Boot 4
 - **Data Persistence:** Spring Data JPA, Hibernate
 - **Database:** PostgreSQL (Production) / H2 (Local Development)
-- **AI Integration:** Google Gemini API (`gemini-3.6-flash`)
+- **AI Integration:** Google Gemini API (default `gemini-3.6-flash`, bisa diganti lewat env `GEMINI_MODEL`)
 - **Document Generation:** iTextPDF
 - **Integration:** Telegram Bot Java Library
 
@@ -57,6 +57,7 @@ Aplikasi ini telah dioptimalkan untuk penyedia Platform-as-a-Service (PaaS) sepe
    - `GEMINI_API_KEY=api_key_gemini_anda`
    - `DATABASE_USERNAME=user_db_anda`
    - `DATABASE_PASSWORD=password_db_anda`
+   - `GEMINI_MODEL=nama_model` *(opsional, default `gemini-3.6-flash`)*
 3. Tambahkan layanan ping (seperti UptimeRobot) ke `/api/health` jika menggunakan PaaS versi gratis agar bot tidak tertidur (sleep).
 4. Platform akan menangani build dan deployment secara otomatis.
 
