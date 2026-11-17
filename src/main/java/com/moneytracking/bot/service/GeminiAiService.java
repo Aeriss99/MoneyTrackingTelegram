@@ -17,11 +17,14 @@ public class GeminiAiService {
 
     private static final Logger log = LoggerFactory.getLogger(GeminiAiService.class);
     private final String apiKey;
+    private final String model;
     private final OkHttpClient client;
     private final ObjectMapper objectMapper;
 
-    public GeminiAiService(@Value("${gemini.api.key}") String apiKey) {
+    public GeminiAiService(@Value("${gemini.api.key}") String apiKey,
+                           @Value("${gemini.model:gemini-3.6-flash}") String model) {
         this.apiKey = apiKey;
+        this.model = model;
         this.client = new OkHttpClient.Builder()
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
@@ -35,7 +38,7 @@ public class GeminiAiService {
             return new AiResponse("chat", "Maaf, fitur AI sedang tidak tersedia karena API Key belum dikonfigurasi.", null, null, null);
         }
 
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
 
         String systemPrompt = "Kamu adalah AI assistant untuk Money Tracking Telegram Bot.\n\n"
                 + "Tugasmu memahami kalimat natural user terkait transaksi uang atau obrolan keuangan.\n"
