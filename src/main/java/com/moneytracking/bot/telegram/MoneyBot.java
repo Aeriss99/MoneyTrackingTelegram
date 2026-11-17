@@ -202,6 +202,12 @@ public class MoneyBot extends TelegramLongPollingBot {
         if ("record".equals(aiResponse.getIntent())) {
             try {
                 TransactionType type = TransactionType.valueOf(aiResponse.getType().toUpperCase());
+                if (aiResponse.getAmount() == null || aiResponse.getAmount() <= 0) {
+                    // Jangan simpan nominal kosong/nol/negatif dari AI (misalnya pengeluaran ditulis -50000)
+                    log.warn("AI returned invalid amount: {}", aiResponse.getAmount());
+                    sendMessage(chatId, "😅 Nominalnya kurang jelas nih. Coba ketik lagi, misalnya: 'Makan siang 25k'.");
+                    return;
+                }
                 BigDecimal amount = BigDecimal.valueOf(aiResponse.getAmount());
                 transactionService.saveTransaction(user, type, amount, aiResponse.getCategory(), aiResponse.getDescription());
                 
