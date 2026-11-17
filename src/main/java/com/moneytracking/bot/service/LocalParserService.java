@@ -133,7 +133,7 @@ public class LocalParserService {
                 if (lower.contains("gaji")) category = "Gaji";
                 else if (lower.contains("bonus") || lower.contains("thr")) category = "Bonus";
             } else {
-                if (lower.matches(".*\\b(makan|minum|kopi|gojek|gofood|grabfood|nasi|warteg|kfc|mcd|sate|bakso|indomie|teh|snack|jajan)\\b.*")) category = "Makanan";
+                if (lower.matches(".*\\b(makan|minum|kopi|gofood|grabfood|nasi|warteg|kfc|mcd|sate|bakso|indomie|teh|snack|jajan)\\b.*")) category = "Makanan";
                 else if (lower.matches(".*\\b(bensin|parkir|tol|gojek|grab|kereta|krl|mrt|bus|angkot|tiket)\\b.*")) category = "Transport";
                 else if (lower.matches(".*\\b(listrik|air|wifi|internet|indihome|pulsa|paket|kuota|bpjs|kos|kontrakan|sewa)\\b.*")) category = "Kebutuhan";
                 else if (lower.matches(".*\\b(belanja|baju|sepatu|shopee|tokopedia|tiktok|skincare|makeup)\\b.*")) category = "Belanja";
