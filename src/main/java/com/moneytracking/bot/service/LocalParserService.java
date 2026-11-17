@@ -79,12 +79,16 @@ public class LocalParserService {
             return null; // Terlalu panjang, lempar ke AI
         }
 
-        // Regex untuk menangkap nominal (opsional dengan Rp, angka dengan/tanpa titik, opsional k/rb/ribu/jt/juta/m)
-        Pattern p = Pattern.compile("\\b(?:rp\\s*)?(\\d{1,3}(?:\\.\\d{3})*|\\d+)\\s*(k|rb|ribu|jt|juta|m|miliar)?\\b");
+        // Regex untuk menangkap nominal (opsional dengan Rp, angka dengan titik ribuan atau desimal seperti 1.5 / 2,5, opsional k/rb/ribu/jt/juta/m)
+        Pattern p = Pattern.compile("\\b(?:rp\\s*)?(\\d{1,3}(?:\\.\\d{3})+|\\d+(?:[.,]\\d{1,2})?)\\s*(k|rb|ribu|jt|juta|m|miliar)?\\b");
         Matcher m = p.matcher(lower);
 
         if (m.find()) {
-            String numStr = m.group(1).replace(".", "");
+            String rawNum = m.group(1);
+            // "1.250.000" -> titik adalah pemisah ribuan; "1.5" / "2,5" -> desimal
+            String numStr = rawNum.matches("\\d{1,3}(?:\\.\\d{3})+")
+                    ? rawNum.replace(".", "")
+                    : rawNum.replace(",", ".");
             String multiplier = m.group(2);
 
             double amount;
