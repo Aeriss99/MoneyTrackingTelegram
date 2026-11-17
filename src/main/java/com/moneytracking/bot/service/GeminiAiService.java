@@ -121,8 +121,18 @@ public class GeminiAiService {
                         String responseBody = response.body().string();
                         JsonNode rootNode = objectMapper.readTree(responseBody);
                         
+                        // Gemini bisa mengembalikan respons tanpa kandidat (misalnya diblokir safety filter).
+                        // Itu bukan error jaringan, jadi tidak perlu di-retry.
+                        JsonNode candidates = rootNode.path("candidates");
+                        if (!candidates.isArray() || candidates.isEmpty()
+                                || candidates.get(0).path("content").path("parts").isEmpty()) {
+                            log.warn("Gemini returned no candidates: {}", rootNode.path("promptFeedback"));
+                            response.close();
+                            return new AiResponse("chat", "Hmm, aku belum bisa jawab yang itu 😅 Coba tulis ulang dengan kalimat lain ya.", null, null, null);
+                        }
+
                         // Extract text from Gemini structure
-                        String aiText = rootNode.path("candidates").get(0)
+                        String aiText = candidates.get(0)
                                 .path("content").path("parts").get(0)
                                 .path("text").asText();
                         
