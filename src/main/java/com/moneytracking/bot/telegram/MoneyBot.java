@@ -319,7 +319,7 @@ public class MoneyBot extends TelegramLongPollingBot {
                 edit.setChatId(String.valueOf(chatId));
                 edit.setMessageId(messageId);
                 edit.setText("Batal, tidak ada transaksi yang dipilih.");
-                try { execute(edit); } catch (TelegramApiException e) { e.printStackTrace(); }
+                try { execute(edit); } catch (TelegramApiException e) { log.error("Gagal mengirim pesan ke Telegram", e); }
             } else {
                 String result = transactionService.deleteMultipleTransactions(user, session.getSelectedTransactionsToDelete());
                 session.clear();
@@ -328,7 +328,7 @@ public class MoneyBot extends TelegramLongPollingBot {
                 edit.setChatId(String.valueOf(chatId));
                 edit.setMessageId(messageId);
                 edit.setText(result);
-                try { execute(edit); } catch (TelegramApiException e) { e.printStackTrace(); }
+                try { execute(edit); } catch (TelegramApiException e) { log.error("Gagal mengirim pesan ke Telegram", e); }
             }
         }
         
@@ -339,7 +339,7 @@ public class MoneyBot extends TelegramLongPollingBot {
             edit.setChatId(String.valueOf(chatId));
             edit.setMessageId(messageId);
             edit.setText("Batal menghapus transaksi.");
-            try { execute(edit); } catch (TelegramApiException e) { e.printStackTrace(); }
+            try { execute(edit); } catch (TelegramApiException e) { log.error("Gagal mengirim pesan ke Telegram", e); }
         }
 
     }
@@ -404,7 +404,7 @@ public class MoneyBot extends TelegramLongPollingBot {
         keyboardMarkup.setKeyboard(keyboard);
         message.setReplyMarkup(keyboardMarkup);
 
-        try { execute(message); } catch (TelegramApiException e) { e.printStackTrace(); }
+        try { execute(message); } catch (TelegramApiException e) { log.error("Gagal mengirim pesan ke Telegram", e); }
     }
     
     private void sendCancelableMessage(long chatId, String text) {
@@ -421,7 +421,7 @@ public class MoneyBot extends TelegramLongPollingBot {
         
         keyboardMarkup.setKeyboard(keyboard);
         message.setReplyMarkup(keyboardMarkup);
-        try { execute(message); } catch (TelegramApiException e) { e.printStackTrace(); }
+        try { execute(message); } catch (TelegramApiException e) { log.error("Gagal mengirim pesan ke Telegram", e); }
     }
 
     private void sendExpenseCategoryMenu(long chatId) {
@@ -442,14 +442,14 @@ public class MoneyBot extends TelegramLongPollingBot {
         keyboardMarkup.setKeyboard(keyboard);
         message.setReplyMarkup(keyboardMarkup);
         
-        try { execute(message); } catch (TelegramApiException e) { e.printStackTrace(); }
+        try { execute(message); } catch (TelegramApiException e) { log.error("Gagal mengirim pesan ke Telegram", e); }
     }
 
     private void sendMessage(long chatId, String text) {
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
         message.setText(text);
-        try { execute(message); } catch (TelegramApiException e) { e.printStackTrace(); }
+        try { execute(message); } catch (TelegramApiException e) { log.error("Gagal mengirim pesan ke Telegram", e); }
     }
 
     private void sendRiwayatMessage(long chatId, User user, int page) {
@@ -493,7 +493,7 @@ public class MoneyBot extends TelegramLongPollingBot {
             
             execute(edit);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Gagal mengupdate riwayat transaksi", e);
             sendMessage(chatId, "❌ Gagal mengupdate riwayat transaksi.");
         }
     }
@@ -531,7 +531,7 @@ public class MoneyBot extends TelegramLongPollingBot {
         message.setChatId(String.valueOf(chatId));
         message.setText(text);
         message.setReplyMarkup(getLaporanPagination(0)); // 0 = current month
-        try { execute(message); } catch (TelegramApiException e) { e.printStackTrace(); }
+        try { execute(message); } catch (TelegramApiException e) { log.error("Gagal mengirim pesan ke Telegram", e); }
     }
     
     private void editLaporanMessage(long chatId, int messageId, User user, LocalDateTime targetMonth, int monthOffset) {
@@ -541,7 +541,7 @@ public class MoneyBot extends TelegramLongPollingBot {
         edit.setMessageId(messageId);
         edit.setText(text);
         edit.setReplyMarkup(getLaporanPagination(monthOffset));
-        try { execute(edit); } catch (TelegramApiException e) { e.printStackTrace(); }
+        try { execute(edit); } catch (TelegramApiException e) { log.error("Gagal mengirim pesan ke Telegram", e); }
     }
     
     private InlineKeyboardMarkup getLaporanPagination(int monthOffset) {
@@ -627,7 +627,7 @@ public class MoneyBot extends TelegramLongPollingBot {
 
         markup.setKeyboard(rows);
         message.setReplyMarkup(markup);
-        try { execute(message); } catch (TelegramApiException e) { e.printStackTrace(); }
+        try { execute(message); } catch (TelegramApiException e) { log.error("Gagal mengirim pesan ke Telegram", e); }
     }
     
     private void editDeleteMenu(long chatId, int messageId, User user, UserSession session, int page) {
@@ -688,6 +688,6 @@ public class MoneyBot extends TelegramLongPollingBot {
         edit.setMessageId(messageId);
         edit.setText("🗑 Pilih transaksi yang ingin dihapus (bisa lebih dari 1):");
         edit.setReplyMarkup(markup);
-        try { execute(edit); } catch (TelegramApiException e) { e.printStackTrace(); }
+        try { execute(edit); } catch (TelegramApiException e) { log.error("Gagal mengirim pesan ke Telegram", e); }
     }
 }
