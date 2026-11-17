@@ -154,7 +154,7 @@ public class GeminiAiService {
                             aiText = aiText.substring(startIndex, endIndex + 1);
                         }
         
-                        log.info("Gemini Raw JSON Output: {}", aiText);
+                        log.debug("Gemini Raw JSON Output: {}", aiText);
         
                         // Close response explicitly since we aren't using try-with-resources here
                         response.close();
