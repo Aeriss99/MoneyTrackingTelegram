@@ -161,7 +161,8 @@ public class MoneyBot extends TelegramLongPollingBot {
         // Cek pertanyaan saldo
         if (localParserService.isSimpleBalanceCheck(text)) {
             String currentSaldo = transactionService.getSaldo(user);
-            sendMessage(chatId, "💰 Saldo kamu sekarang " + currentSaldo + ".\nMasih aman kan? 😂");
+            // getSaldo() sudah mengembalikan blok lengkap (pemasukan, pengeluaran, saldo)
+            sendMessage(chatId, currentSaldo + "\n\nMasih aman kan? 😂");
             return;
         }
 
