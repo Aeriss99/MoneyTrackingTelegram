@@ -35,7 +35,7 @@ public class GeminiAiService {
             return new AiResponse("chat", "Maaf, fitur AI sedang tidak tersedia karena API Key belum dikonfigurasi.", null, null, null);
         }
 
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=" + apiKey;
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
 
         String systemPrompt = "Kamu adalah AI assistant untuk Money Tracking Telegram Bot.\n\n"
                 + "Tugasmu memahami kalimat natural user terkait transaksi uang atau obrolan keuangan.\n"
@@ -95,6 +95,8 @@ public class GeminiAiService {
                     .url(url)
                     .post(body)
                     .addHeader("Content-Type", "application/json")
+                    // API key lewat header agar tidak ikut tercetak di log/exception yang memuat URL
+                    .addHeader("x-goog-api-key", apiKey)
                     .build();
 
             // Auto-Retry Logic (Max 3 attempts for 5xx errors)
