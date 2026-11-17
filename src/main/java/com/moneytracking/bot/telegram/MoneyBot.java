@@ -471,9 +471,8 @@ public class MoneyBot extends TelegramLongPollingBot {
             
             execute(message);
         } catch (Exception e) {
-            System.err.println("Error saat mengambil/mengirim riwayat: " + e.getMessage());
-            e.printStackTrace(); 
-            sendMessage(chatId, "❌ Gagal mengambil riwayat transaksi.\nSilakan coba lagi.\nError detail: " + e.getMessage());
+            log.error("Error saat mengambil/mengirim riwayat", e);
+            sendMessage(chatId, "❌ Gagal mengambil riwayat transaksi.\nSilakan coba lagi.");
         }
     }
     
